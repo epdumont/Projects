@@ -1,0 +1,97 @@
+---
+title: "SSC109_Final_Report"
+author: "epdumont"
+date: "2025-06-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Read in data
+corn <- read.csv("~/Downloads/ssc109_finalreport.csv")
+
+#corn <- corn[1:16,1:6]
+
+```
+
+
+```{r}
+#Research Question 1: How does Nitrogen (N) retention vary between combinations of soil type and N source from the beginning to the end of the experiment?
+
+soiltype_count <- table(corn$Soil_Type) #Sample size of each soil type (Conventional, No Input, or Organic)
+Nsource_count <- table(corn$N_Source) #Sample size of N source (Manure, Mineral, or None)
+soiltexture_count <- table(corn$Soil_Texture) #Sample size of determined soil textures (Clay, Clay loam, Sandy clay loam, or Sandy loam)
+
+#Two factor ANOVA model testing for interaction effects between 'Soil Type' and 'N Source'
+model <- aov(Mineralized ~ Soil_Type*N_Source, data = corn)
+summary(model) #Both factors (Soil type and N source) appear to be significant, based on the p-values of 0.0120 and 0.0109, respectively. The interaction between the two factors is not significant. These p-values are produced by the ANOVA summary.
+
+plot(model) #Outlier data points are labeled by row number in QQ plot
+
+#N_model <- lm(Difference ~ N_Source, data = corn)
+#summary(N_model)
+
+#plot(N_model)
+
+#Assess the normality of distributions side by side
+#par(mfrow = c(1,2))
+qqnorm(model$residuals, main = "Normal Q-Q Plot for Interaction Model")
+qqline(model$residuals, col = "blue")
+#qqnorm(N_model$residuals, main = "Normal Q-Q Plot for N Model") 
+#qqline(N_model$residuals, col = "red") #N model appears more normal
+
+#Based on the conclusion above, create a summary table of 'N Source'
+count_N <- aggregate(Mineralized ~ N_Source, data = corn, length) #Same sample size per N source
+sum_N <- aggregate(Mineralized ~ N_Source, data = corn, sum) #Mineral has more than double the sum than manure
+avg_N <- aggregate(Mineralized ~ N_Source, data = corn, mean) #Mineral has more than double N content than manure
+sd_N <- aggregate(Mineralized ~ N_Source, data = corn, sd) #Manure has more than double standard deviation than mineral
+
+#Summary table
+df <- cbind(count_N,c(sum_N,avg_N,sd_N))
+df <- df[,c(1:2,4,6,8)]
+colnames(df) <- c("N Source", "Count","Sum","Mean","Standard Variation")
+
+```
+
+```{r}
+#Research Question 1:
+
+boxplot(Mineralized ~ N_Source*Soil_Type, data = corn, main="Mineralized N Content by N Source and Soil Type",ylab = "Mineralized N (mg/kg)", xlab="N Source * Soil Type", cex.axis = .5)
+#Generally, mineral N source has higher mineralized N with the exception of organic manure. 
+
+boxplot(Mineralized ~ Soil_Texture, data = corn, main="Mineralized N Content by Soil Texture",ylab="Mineralized N (mg/kg)", xlab="Soil Texture", cex.axis = 0.6)
+#Sandy loam has the highest mineralized N content, though this result could be biased by the smallest sample size of 2
+
+```
+
+
+```{r}
+#Research Question 2: What is the relationship between available N and average dry plant matter percent?
+
+bio <- read.csv("~/Downloads/ssc109_finalreport2.csv")
+model2 <- lm(Final_Biomass ~ N_applied, data = bio)
+summary(model2)
+
+qqnorm(model2$residuals, main = "Normal Q-Q Plot for Linear Regression Model")
+qqline(model2$residuals, col = "blue")
+
+avg_bio <- aggregate(Final_Biomass ~ N_applied, data = bio, mean)
+colnames(avg_bio) <- c("Applied N (mg/kg)", "Avg. Dry Weight (g)")
+
+#model2 <- lm(Difference ~ Avg._Dry_Plant_Matter, data = corn)
+#summary(model2) #p-value = 0.0524, so data is significant at a 10% level but not 5%
+
+#plot(model2) #Assess normality of data with QQ plot
+
+#Plots
+#yint <- model2$coefficients[1] #Value = -14.2 (use absolute value)
+#slope <- model2$coefficients[2] #Value = 1.08
+
+#plot(corn$Difference, corn$Avg._Dry_Plant_Matter, main = "N Content vs. Average Dry Plant Matter", xlab = "N Content (mg/kg)", ylab = "Avg. Dry Plant Matter (%)")
+#abline(14.2036, model2$coefficients[2], col = 'red')
+
+```
+
