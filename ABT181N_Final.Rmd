@@ -1,0 +1,255 @@
+---
+title: "ABT181N_Final"
+author: "epdumont"
+date: "2025-02-18"
+output: html_document
+---
+
+Introduction:
+
+Back Bay Wildlife Refuge (BBWR) is one of many wildlife refuges in the Virginia Beach, VA, area that provides habitat for over 300 species of wildlife, including migratory birds and waterfowl. Established in 1938, Back Bay Wildlife Refuge has a long history of environmental and wildlife conservation efforts through wetland management methods. Before conservation intervention, the wetland areas were largely brackish water, which refers to water with intermediate salinity: higher than freshwater but lower than seawater (U.S. Fish and Wildlife Service, 2024).  Throughout the 1970s-1980s, the Refuge suffered from large amounts of external pollution, which have been mitigated over time by the efforts of the U.S. Fish and Wildlife Service. Much of the research conducted on this region is somewhat outdated (dating back to 2017), but we hope to use analysis of this data to determine the current and future health of Back Bay.
+
+As climate change becomes an increasingly pressing issue, scholars have examined the relationship between water quality factors, including pH, turbidity, and salinity, and the abundance of important migratory waterfowl such as the American Black Duck and the Tundra Swan. We chose to examine turbidity, which measures the amount of suspended sediment present in a water body. Turbidity is arguably the most important factor in preserving migratory waterfowl populations because waterfowl species in this wildlife refuge feed on Submerged Aquatic Vegetation (SAV). A high level of turbidity in a water body can be detrimental to the ecosystem because suspended sediments can prevent SAV from getting the sunlight to survive, thus removing important food sources for migratory birds (Sibilia et. al, 2022). 
+
+One of our datasets includes a csv file containing abundance of several migratory waterfowl species and the water quality parameters (pH, turbidity, and salinity) for each species for each year they were sampled. We selected the five most abundant species and examined the change in average water quality from 2010 to 2017. We also collected coordinate observation data about the Tundra Swan, Mallard, Green-winged Teal, and American Widgeon through iNaturalist and plotted the observations on a shapefile of a small region within Virginia. We also decided to use remote sensing techniques to examine two Landsat satellite images to observe more recent change in the Back Bay region between 2017 and 2024. Overall, we hope to discover whether there is a significant relationship between the changes in water quality and species abundance in order to inform future conservation efforts at the Back Bay Wildlife Refuge.
+
+
+```{r}
+# Reproducibility
+
+wd <- getwd()
+setwd(wd)
+data_folder <- file.path(wd, "Data.zip")
+unzip(data_folder, overwrite=TRUE)
+
+```
+
+```{r}
+# Read in our data set including data on species abundance and changes in water quality parameters from 1991-2017
+backbay <- read.csv("./Data/backbaydata.csv")
+
+# Determine the species with the most occurrences in the data frame
+table(backbay$species)
+
+# Based on the results of the previous step, we chose to focus on ABDU, AMWI, GWTE, MALL, and TUSW.
+
+# Species Codes:
+# ABDU: American Black Duck
+# AMWI: American Wigeon
+# GWTE: Green-winged Teal
+# MALL: Mallard
+# TUSW: Tundra Swan
+
+# Create a new data frame using the "subset()" function to only include our species of interest
+subset <- na.omit(backbay[backbay$species %in% c("ABDU", "AMWI", "GWTE", "MALL", "TUSW"), ])
+
+# After creating the data frame above, the timeline is now from 2010-2017 due to omitting NA values and removing majority of the observed species
+
+```
+
+```{r}
+library(ggplot2)
+
+# Preliminary analysis of annual species abundance
+
+# Create a stacked bar plot of all species observations per year in order to visualize relative changes in abundance
+ggplot(subset,aes(x=year, y=total.abundance, fill=species))+geom_col(position="fill")+xlab("Year")+ylab("Species Abundance")+scale_fill_discrete(name="Species", labels= c("American Black Duck","American Wigeon","Green-winged Teal","Mallard","Tundra Swan"))
+
+# Based on this plot, we chose to focus on the Tundra Swan for further analysis because Tundra Swan observations were present in every year. We also noticed that their species abundance varied highly between each year, so we began to wonder if there was any motive for these changes. 
+
+```
+
+```{r}
+library(tidyr)
+
+# Preliminary analysis of water quality parameters
+
+# Use the "pivot_longer() function to create one column of all three water quality parameters. Tidying our data frame in this format will easily allow us to plot all three parameters on one line graph. 
+bb_extract <- subset %>% pivot_longer(cols = c(ph, salinity, turbidity), names_to = "WQ_Parameter", values_to = "Values")
+
+ggplot(bb_extract, aes(x = year, y = Values, color = WQ_Parameter,group=WQ_Parameter))+geom_line(stat = "identity",position="identity")+labs(x = "Years", y = "values", title = "Changes in Water Quality Parameters",color="Water Quality Parameter") +scale_color_manual(values = c("blue", "lightblue", "tan"),labels=c("pH","Salinity (ppt)","Turbidity (NTU)"))+xlab("Year")+ylab("Value") + theme(legend.title = element_text(size = 8), legend.text = element_text(size = 7))
+
+# Based on the produced plot, we noticed more variable changes in turbidity (in units of NTU) compared to pH and salinity. Moving forward, we analyzed turbidity in specific to determine if variations in turbidity in Back Bay, Virginia has an effect on Tundra Swan abundance. We figured the pH and salinity values were too consistent to determine a relationship between species abundance. 
+
+```
+
+```{r}
+library(terra)
+#library(readxl)
+library(dplyr)
+
+# Spatial data
+
+# Using excel, we created a data frame of species observations that includes latitude and longitude coordinates from iNaturalist. All five species of interest are included with their associated species codes. 
+
+# Read in the excel file
+coords_df <- read.csv("./Data/tundraswan.csv")
+
+# The observation date column is in the year-month-day format, but we are only interested in the year. Therefore, we create a column including just the year the observation was made. 
+coords_df <- coords_df %>% mutate(Date_Observed = as.Date(Date_Observed, format="%m/%d/%y")) %>% mutate(Year = format(Date_Observed, "%Y"))
+
+# The extent below centers Back Bay, Virginia using a NAD83 projection
+extent <- c(-76.05,-75.5,36.45,36.825)
+
+# Create a SpatVector of the state of Virginia
+VIRG <- vect("./Data/tl_2019_us_county/tl_2019_us_county.shp")
+
+# Crop the Virginia state and county vectors based on the extent made for Back Bay
+VA_bb <- crop(VIRG,extent)
+
+# Create a variable of species observation points
+points <- vect(coords_df, geom = c("Longitude","Latitude"), crs = "EPSG:4269")
+
+library(ggplot2)
+library(sf)
+
+# Convert the Virginia SpatVector and species observation points to sf objects for easier plotting
+VA_bb_sf <- st_as_sf(VA_bb)
+points_sf <- st_as_sf(points)
+
+ggplot() + geom_sf(data = VA_bb_sf, fill = NA, color = "black") + geom_sf(data = points_sf, aes(color = as.factor(Year)), size = 2) + scale_color_viridis_d() + theme_minimal() + labs(color = "Year", title = "Species Observations in Back Bay, VA")+theme(axis.text.x=element_text(size=6))
+
+```
+
+```{r}
+# The plot of species observations includes points that are very close together, practically overlapping, which makes it difficult to differentiate the difference in total points between each year. We made a histogram for better understanding of how those species observations vary throughout the years. 
+
+ggplot(points_sf, aes(x = Year)) +
+  geom_histogram(stat="count",fill = "steelblue", color = "black") +
+  theme_minimal() +
+  labs(title = "Species Observations per Year", 
+       x = "Year", 
+       y = "Number of Observations")
+
+# Based on the histogram produced below, total species observations peaked in 2015.
+
+```
+
+
+
+```{r}
+# Linear regression models
+
+# Create a data frame of exclusively Tundra Swan observations in order to see how this species in particular has reacted to changes in water quality parameters.
+TUSW <- subset[subset$species %in% "TUSW",]
+
+par(mfrow=c(3,1))
+
+# Turbidity model
+TUSW_turbid <- lm(total.abundance~turbidity, data=TUSW)
+plot(TUSW$turbidity, TUSW$total.abundance, main = "Turbidity vs. Total Tundra Swan Abundance", xlab = "Turbidity (NTU)", ylab = "Total Tundra Swan Abundance")
+abline(TUSW_turbid, col = "tan") # adj. r^2 = 0.1601
+
+# Run the statistics of the turbidity model since it is our parameter of interest
+model_stats <- summary(TUSW_turbid)
+
+# The adjusted r-squared value of 0.1601 suggests that the relationship between turbidity and Tundra Swan abundance is weak. This insignificant relationship is confirmed by a p-value of 0.1774. The assumed confidence level has a p-value of 0.05, therefore our p-value is too large to prove the variables' relationship is significant. 
+
+# Out of curiosity, we also created a model and plotted the relationships for pH and salinity. The summary statistics for both of these models concluded in even less significant relationships compared to turbidity. 
+
+#pH model
+TUSW_ph <- lm(total.abundance~ph, data=TUSW)
+plot(TUSW$ph, TUSW$total.abundance, main = "pH vs. Total Tundra Swan Abundance", xlab = "pH", ylab = "Total Tundra Swan Abundance")
+abline(TUSW_ph, col = "blue") # adj. r^2 = 0.06107
+
+#salinity model
+TUSW_sal <- lm(total.abundance~salinity, data=TUSW)
+plot(TUSW$salinity, TUSW$total.abundance, main = "Salinity vs. Total Tundra Swan Abundance", xlab = "Salinity (ppt)", ylab = "Total Tundra Swan Abundance")
+abline(TUSW_sal, col = "lightblue") # adj. r^2 = -0.07168
+
+```
+
+```{r}
+# Observe two Landsat images to visually compare Back Bay region in 2017 and 2024. Although there appears to be some atmospheric interference in the 2024 image, there is still a noticable difference in the color of the waterbody, potentially due to increased turbidity.
+
+library(terra)
+
+#Create a SpatRaster for each of the Landsat images
+landsat2017 <- rast("./Data/ABT181_landsat/Landsat_2017.tif")
+landsat2024 <- rast("./Data/ABT181_landsat/Landsat_2024.tif")
+
+# Plot two RGB Composites, by visualizing Band 3 (red), Band 2 (green), and Band 1 (blue). Using linear stretch produced images with too little contrast, so we decided to use a histogram stretch to better visualize changes.
+
+plotRGB(landsat2017, r=3, g=2, b=1, stretch="hist")
+plotRGB(landsat2024, r=3, g=2, b=1, stretch="hist")
+
+```
+
+```{r}
+# Calculate Normalized Difference Turbidity Index (NDTI) using the Red and Green bands. This will help show suspended sediment because soils and minerals have higher reflectance in the red wavelength region, while clear water bodies will have low reflectance overall in the visible range.
+
+ndti2017 <- (landsat2017[[3]] - landsat2017[[2]]) / (landsat2017[[3]] + landsat2017[[2]])
+
+ndti2024 <- (landsat2024[[3]] - landsat2024[[2]])/(landsat2024[[3]] + landsat2024[[2]])
+
+```
+
+```{r}
+# Plot NDTI for 2017 and 2024
+plot(ndti2017, main="NDTI 2017 (Turbidity Index)", col=terrain.colors(20),
+     zlim = c(-0.3, 0.3))
+plot(ndti2024, main="NDTI 2024 (Turbidity Index)", col=terrain.colors(20),
+     zlim=c(-0.3, 0.3))
+
+# We chose 2017 as it is the most recent year of our species data, and we chose 2024 because it is the most current year Landsat imagery can provide.
+
+```
+
+```{r}
+# Plotting the reflectance level of the green band alone can help us visualize where the lack of water clarity is due to suspended sediment (turbidity), or Submerged Aquatic Vegetation (SAV). As seen by the images, there is little green reflectance in either water body, indicating the SAV is not the primary factor increasing 2024 water reflectance.
+
+plot(landsat2017[[2]])
+plot(landsat2024[[2]])
+
+```
+
+```{r}
+# Upon further analysis, it came to our attention that the extents of the 2017 and 2024 images are slightly offset from one another. We resampled the 2024 image in order to ensure that the extent of the images is the same for further analysis.
+
+landsat2024_resampled <- resample(landsat2024, landsat2017, method="bilinear")
+
+ndti2024_resampled <- (landsat2024_resampled[[3]] - landsat2024_resampled[[2]]) / (landsat2024_resampled[[3]] + landsat2024_resampled[[2]])
+
+# Once again, we plot the calculated NDTI of the resampled image side by side with the 2017 image to better visualize changes.
+
+par(mfrow=c(1,2))
+
+plot(ndti2017, main="NDTI 2017 (Turbidity Index)", col=terrain.colors(20),
+     zlim = c(-0.3, 0.3))
+
+plot(ndti2024_resampled, main="NDTI 2024 (Aligned)", col=terrain.colors(20), zlim=c(-0.3, 0.3))
+
+```
+
+```{r}
+# By taking the difference between NDTI values from the resampled 2024 image and the 2017 image, we can plot the increase in turbdity at the pixel level. Positive values indicate that turbidity in 2024 is higher than in 2017, and negative values indicate a decrease in turbidity over time. The change image shows that there has been a slight increase in turbidity from 2017 to 2024.
+
+ndti_change <- ndti2024_resampled - ndti2017
+
+plot(ndti_change, main="NDTI Difference 2017-2024", col=terrain.colors(100), zlim = c(-0.3, 0.3))
+
+```
+
+```{r}
+# Band 5 represents the reflectance levels of Shortwave Infrared (SWIR) light. This was more effective for monitoring the health of wetland vegetation than of the water body itself, but it still gives us more information about the health of the Back Bay region in general. Healthy vegetation has water absorption features in the SWIR region, so the increased brightness in the 2024 image indicates a decrease in wetland vegetation moisture over time.
+
+par(mfrow=c(1,2))
+
+plot(landsat2017[[5]])
+plot(landsat2024_resampled[[5]])
+
+```
+
+
+Conclusion: 
+
+Our research question is: Do fluctuations of water quality parameters, such as pH, salinity, and turbidity, have any adverse effects on avian abundance in Back Bay, Virginia? 
+
+Statistically, we found that none of these three parameters affect avian species abundances within the Back Bay region of Virginia because the adjusted r2 values are too low and the p-values are too high for each model. We can draw these conclusions based on our linear regression analysis results, which compare each water quality parameter to the abundance of Tundra Swans from 2010 to 2017.
+
+The linear regression model for turbidity did suggest a significant negative correlation with Tundra Swan observations based on the slope of the best-fit line, leading us to visualize turbidity in the area further using Landsat imagery. The mapped change of the Normalized Difference Turbidity Index (NDTI) from 2024 compared to 2017 shows a slight increase in NDTI in the water body pixels, indicating an increase of suspended sediment over time. 
+
+Turbidity within Back Bay has increased since 2017, but it is essential to collect more species observations to further analyze the relationship between the two variables. The correlation between the two is highly impacted by the limited data we have on species abundance; therefore, removing this limitation with more data would be beneficial in determining a more accurate relationship. 
+
+Following a more thorough assessment, proper management of the wildlife preserve could be implemented to prevent factors that increase turbidity and provide solutions for damage that has already persisted. The most important managerial implications to consider are preventative measures, which include limiting human activity and controlling nearby erosion and urban runoff. Additionally, natural sediment filtration using nearshore vegetation would be ideal for resolving excessive suspended sediment in the water body. The preserve should also be regularly monitored in order to identify any drastic changes in water quality that could negatively affect avian species' abundance.
+
