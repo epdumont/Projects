@@ -1,0 +1,272 @@
+---
+title: "ESP106_FinalProject_RaoDumont"
+author: "epdumont"
+date: "2025-02-25"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+Introduction:
+
+Agricultural water use is undergoing significant changes in response to challenges surrounding drought, climate change and a growing population. In the United States, climate change is exacerbating groundwater depletion as recharge rates are declining and extraction rates are increasing to compensate for surface water shortages (USGS). Currently in the US, irrigation accounts for 42% of the nations total freshwater withdrawals (USDA ERS). In California specifically, groundwater is the new gold as it provided up to 60% of the states water supply during drought years (PPIC). In addition, water problems, such as drought, are becoming more frequent, long lasting, and more severe due to rising global temperatures (USGS).
+
+Because of all of these major changes occurring with the planet warming and human consumption worsening, we wanted to analyze any correlations between agricultural water and the annual water intake of specific crops per county. We hoped to paint this picture which would then allow us to understand, in a very small snapshot, how or is California dealing with such big changes to our water supply. Are there any changes to water consumption per crop given that California has been experiencing drought? What are some greater measures that could possibly be put into place to help deal with water consumption. We wanted to analyze this data over multiple years to see if there were any changes in water consumption and how water budget factors, such as drought and climate change, can affect overall water consumption for any given crop. With this, we ended up with a final research question of: Did areas where groundwater (GW) is critically overdrafted see a move towards less water-intensive crops?
+
+We need to address groundwater depletion to ensure long-term water security, agricultural sustainability an ecosystem health. Over extraction threatens agricultural productivity and drinking water supply! In California’s Central Valley and the Ogallala Aquifer, decades of intensive pumping have already led to falling water tables and without intervention these trends will continue to accelerate, placing immense strain on food production, rural communities, and freshwater ecosystems. We need to implement sustainable water policies to improve irrigation efficiency and enhance groundwater recharge efforts, which are essential to preserving this vital resource for future generations. 
+
+
+Dataset Descriptions & Plot Analysis: 
+
+To approach this problem we had defined, we narrowed down three specific datasets that helped us answer our problem. One thing to note, to define our crops of interest, we found crop water data via research publications and selected two water intensive crops (Almonds and Alfalfa) and one not as water intensive, yet in high demand, (Tomatoes) for comparison. The first dataset is from the USDA and it's the NASS Cropland Data Layer. It is a geo-referenced, crop-specific land cover raster data layer that tells us where crops are grown in the United States. Using the tool, we were able to subset our county of choice, San Joaquin, and see throughout a 5 year time frame (2019-2023), how growth in certain crops had changed. Our second dataset was Groundwater Extraction Data
+from the California Natural Resources Agency. This data gave us total groundwater extractions and how these extractions were being used in different sectors (urban, agricultural and industrial). The last dataset we use was a shapefile of critically overdrafted groundwater basins in California. This helped us visualize where the overdrafted GW basins existed. 
+
+
+First, we took the critically overdrafted basins map and we overlayed it on a map we found of California subsetted by county. This allowed us to visually understand which areas in California were the most affected by groundwater basins being overdrafted.
+
+Secondly, we took the Cropland data per year in our defined time frame (2019-2023) and created separated data frames for each of the years we pulled data. We then proceeded to plot Almond, Alfalfa, and Tomatoes on a map of San Joaquin county to see how crop abundance has changed over our specified time frame. This gives us a series of spatial maps that show crop disribution over time. Based on the plot, we can see that Almond acerage seems to be staying steady over the years while Tomatoes and Alfalfa are seeing the biggest fluctuations, overall it seems like Alfalfa is increasing as Tomatoes decrease. Climate conditions and water availability may be influencing farmers’ crop choices, as Almonds require more long-term investment in trees compared to seasonal crops like Tomatoes. This plot was also transformed into a scatterplot we created which gives us a different view of how the crop amounts change over the years. 
+
+The next plot we created was a breakdown of the groundwater extractions which overwhelmingly is dominated by agricultural water use with urban and indisutrial water usage being relatively minor in comparison. However, agricultural withdrawals show us interannual variability, possibly due to climate fluctuations, drought restrictions, and policy changes affecting irrigation allowances.
+
+We then created a column in our main dataframe, relative water use, which is defined as total crop acreage divided by estimated water use per acre. This metric allows us to compare between different crop types in terms of their water efficiency. Based on this plot, we can see that with Tomatoes, it generally requires less water per acre compared to Alfalfa and Almonds. But a general trend we can derive from this is that Almonds continue to see an increase in water use while Alfalfa and Tomatoes see more flications in relative water usage.  
+
+By incorporating groundwater extraction data, this analysis aims to determine whether higher groundwater withdrawals correlate with increases in crop abundance, and whether water-intensive crops are exacerbating groundwater depletion in overdrafted basins.
+
+
+FOR REGRESSION ANALYSIS:
+A linear regression model examines whether groundwater extraction levels predict crop production (in acres).
+
+Positive correlation: Higher groundwater extractions increase crop acreage, confirming that agriculture in this region is highly groundwater-dependent.
+Possible limitations: The model does not account for surface water availability or drought regulations, which may also influence irrigation practices.
+
+```{r}
+wd <- getwd()
+setwd(wd)
+data_folder <- file.path(wd, "Final_Data.zip")
+unzip(data_folder, overwrite=TRUE)
+
+
+```
+
+```{r}
+#Overdrafted basins map overlay
+
+library(tigris)
+library(dplyr)
+library(sf)
+library(ggplot2)
+library(terra)
+
+
+#Above we have loaded all the libraries necessary to do the coding. Tigris = census and geographic data. SF = a standardized way to encode spatial vector data. 
+
+options(tigris_use_sf = TRUE) #returns spatial data as simple features
+
+counties_CA <- vect("./Final_Data/California_Counties/California_Counties.shp") #reading in the california county data as a shapefile
+
+basins <- vect("./Final_Data/i08_CriticallyOverdraftedBasins/i08_CriticallyOverdraftedBasins.shp") #Shapefile of the critically overdrafted basins in California
+
+extent <- crop(basins,counties_CA) #Crops the basins layer to the boundary of the counties so that only basins inside California are kept
+
+plot(counties_CA,main="Overdrafted Groundwater Basins") #Plots the California county boundaries
+plot(extent, col="lightblue",add=TRUE) # Overlays the overdrafted groundwater basins
+legend(x=-13200000,y=5000000, legend="Overdrafted", fill="lightblue", cex=0.6)
+
+```
+
+```{r}
+#Data frame creation
+
+#This is the methodology with how we were approaching this section of code. (1) Read in our groundwater data and read in our cropland data for our years of interest. (2) Next, create data frames for each of the years (2019-2023) in which we include the individual years crop data, add a column for the basin names in our area of interest (Eastern San Joaquin), the year attributed to the data and the estimates of the water usage per acre feet per year! The estimates we got from extensive research using research publications to narrow down an estimated of how much water each crop used per year. 
+
+#With all of this, we then had 5 separate data frames so we decided to merge all of this data frame into one bigger data frame which we named five_year_df. With five_year_df and the groundwater data (sj_gw), we then merged it all together again so that the year and crop data could be in the same data frame with the groundwater data. With all of this important information in the data frame, we calculated the relative water use in each of the data frames! This final data frame we named pre-merged. 
+
+library(terra)
+
+groundwater <- read.csv("./Final_Data/groundwater_extractions.csv") #This is the file that has the groundwater extractions and also tells us the breakdown of how the water that is extracted is used. 
+
+sj_gw <- groundwater[c(6,30,72,168,267),] #subset data frame to include only San Joaquin counties
+as.data.frame(sj_gw)
+
+alfalfa_water <- 5.5 #acre-feet per year
+almond_water <- 5.1 #acre-feet per year
+tomato_water <- 2.25 #acre-feet per year
+
+crop_2019 <- read.csv("./Final_Data/CroplandCROS_AOI_Data_2019.csv") #this is the csv file we got from CROPLAND USDA which tells us what acreage the crops of interest (Almonds, Alfalfa, & Tomatoes) take up in San Joaquin County.
+crop_2019$Basin <- "EASTERN SAN JOAQUIN" # Add a column that gives the label of Eastern San Joaquin to the dataframe
+crop_2019$WaterUse_acftperyr <- c(alfalfa_water,almond_water,tomato_water) #calculation of relative water use!
+crop_2019$Year <- 2019 #add the year attributed to the data points 
+
+crop_2020 <- read.csv("./Final_Data/CroplandCROS_AOI_Data_2020.csv")
+crop_2020$Basin <- "EASTERN SAN JOAQUIN"
+#sj_crop_2020 <- crop_2020[c(1,4,8),]
+crop_2020$WaterUse_acftperyr <- c(alfalfa_water,almond_water,tomato_water)
+crop_2020$Year <- 2020
+
+crop_2021 <- read.csv("./Final_Data/CroplandCROS_AOI_Data_2021.csv")
+crop_2021$Basin <- "EASTERN SAN JOAQUIN"
+#sj_crop_2021 <- crop_2021[c(1,4,8),]
+crop_2021$WaterUse_acftperyr <- c(alfalfa_water,almond_water,tomato_water)
+crop_2021$Year <- 2021
+
+crop_2022 <- read.csv("./Final_Data/CroplandCROS_AOI_Data_2022.csv")
+crop_2022$Basin <- "EASTERN SAN JOAQUIN"
+#sj_crop_2022 <- crop_2022[c(1,4,8),]
+crop_2022$WaterUse_acftperyr <- c(alfalfa_water,almond_water,tomato_water)
+crop_2022$Year <- 2022
+
+crop_2023 <- read.csv("./Final_Data/CroplandCROS_AOI_Data_2023.csv")
+crop_2023$Basin <- "EASTERN SAN JOAQUIN"
+#sj_crop_2023 <- crop_2023[c(1,4,8),]
+crop_2023$WaterUse_acftperyr <- c(alfalfa_water,almond_water,tomato_water)
+crop_2023$Year <- 2023
+
+five_yr_df <- rbind(crop_2019,crop_2020,crop_2021,crop_2022,crop_2023)
+
+pre_merged <- merge(five_yr_df,sj_gw)
+pre_merged$Rel_WaterUse <- pre_merged$Area..acres./pre_merged$WaterUse_acftperyr
+
+#Something we noticed in the pre-merged data frame was that the groundwater extraction data frame and the crop data frame that we merged had two different year columns and this was causing some confusion when we were trying to plot our other plots. So what we decided to do in this chunk of code was to merge the data frames once more but do it by merge it by years. This new data frame we called merged_df2 and in this data frame we calculated the relative water use in each of the data frames! merge_df2 is used the new data frame we call in our code to create all out plots! 
+
+# Load necessary library
+library(dplyr)
+
+# Ensure Year and REPORT_YEAR are integers because otherwise merge will not work 
+sj_gw$REPORT_YEAR <- as.integer(sj_gw$REPORT_YEAR) 
+five_yr_df$Year <- as.integer(five_yr_df$Year)
+
+# Merge the data sets using Year and REPORT_YEAR
+merged_df2 <- merge(five_yr_df, sj_gw, by.x = "Year", by.y = "REPORT_YEAR", all.x = TRUE)
+merged_df2$Rel_WaterUse <- merged_df2$Area..acres./merged_df2$WaterUse_acftperyr
+
+test = pre_merged[pre_merged$Category == "Alfalfa",]
+
+alfalfa = test[!duplicated(test[c("Category", "Year")]), ]
+
+alfalfa <- alfalfa %>%
+  filter(!is.na(TOTAL_GROUNDWATER_EXTRACTIONS) & 
+         !is.na(Area..acres.) & 
+         is.finite(TOTAL_GROUNDWATER_EXTRACTIONS) & 
+         is.finite(Area..acres.))
+
+```
+
+```{r}
+#Crop abundance scatterplot
+
+#This scatterplot displays Year on the x-axis and Pixel.count on the y-axis from the dataframe merged_df2. The colors specify to each of the different crops. Tan is Almonds, Green is Alfalfa and Tomato is red. We have also included a legend to complement this.
+plot(merged_df2$Year,merged_df2$Pixel.count,col=c("tan","green","red"),ylim=c(min=0,max=600000),xlab="Year",ylab="Crop Abundance",main="Annual Crop Abundance in San Joaquin County",pch=16)  
+legend("topleft",legend=c("Almond","Alfalfa","Tomato"),col=c("tan","green","red"),pch=16)
+
+#With this plot, we noticed that almonds consistently have the highest crop abundance over the years, with minimal variation. Alfalfa shows a slight decrease over time, indicating a possible reduction in cultivation. And tomatoes have the lowest abundance, but their pixel counts remain relatively stable across years. This trend for almonds could be attributed to the fact that the dominance of almonds aligns with trends in California’s shift toward high-value crops despite their water-intensive nature.
+
+```
+
+```{r}
+#Stacked groundwater use per sector
+
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+
+#Our original attempt to visualize GW use per sector:
+#ggplot(pre_merged,aes(x=Year,y=WUS_URBAN))+geom_bar(position="stack",stat="identity")
+
+# Convert the dataset from wide to long format
+extract <- merged_df2 %>%
+  pivot_longer(cols = c(WUS_URBAN, WUS_INDUSTRIAL, WUS_AGRICULTURAL), 
+               names_to = "WUS_Type", values_to = "acft")
+
+# Create a stacked area plot
+ggplot(extract, aes(x = Year, y = acft, fill = WUS_Type)) +
+  geom_area(alpha = 0.7, position = "stack") +  # Stacked area for cumulative water use
+  labs(title = "Stacked Area Plot of Groundwater Use Over Time",
+       x = "Year", 
+       y = "Water Usage (acft)",
+       fill = "Water Use Type") +
+  scale_fill_manual(values = c("WUS_URBAN" = "pink", 
+                               "WUS_INDUSTRIAL" = "orange", 
+                               "WUS_AGRICULTURAL" = "purple")) + theme_minimal()
+
+#This chunk of code is meant to call upon the merged_df2 data frame to create a stacked area plot of groundwater usage. This is meant to tell us from the groundwater extractions, which of it is applied to what sector. 
+
+#Overall we noticed that agriculture dominates groundwater use, with urban and industrial usage being minor in comparison. But there is a gradual increase in total groundwater extractions from 2019 to 2022, followed by a slight decline in 2023. The decline in 2023 could be due to  drought conditions, water conservation efforts, or stricter groundwater regulations (e.g., SGMA - Sustainable Groundwater Management Act).
+
+```
+
+```{r}
+#Total water use per year per crop
+
+#This plot highlights how the demand of water has changed throughout the years for different crops. We are using the same base of code we have used before in the stacked area plot and we are creating a line plot. 
+
+library(ggplot2)
+
+ggplot(merged_df2,aes(x=Year,y=Rel_WaterUse,group = Category,colour = Category))+geom_line()+labs(x = "Year", y = "Relative Water Use", title = "Total Water Use by Category") + scale_color_manual(values = c("green", "tan", "red"))+scale_y_continuous(breaks = scales::pretty_breaks(n = 11))
+
+#Based on the plot here are some key observations we noticed:
+#Almonds have the highest relative water use, with a significant increase in 2020, followed by slight fluctuations. Overall, almonds uses way more water than the other two crops (Tomatoes and Alfalfa).
+#Tomatoes have the lowest water use but show a notable decline in 2020, followed by a gradual increase in 2022 and 2023.
+#We speculate that the drop in tomato water use in 2020 and the increase may be because of market fluctuations or regulatory changes affecting tomato farming.
+
+```
+
+```{r}
+#Correct regression 
+
+#Create our linear regression model based on the alfalfa data frame created earlier
+model_sjc <- lm(Area..acres.~TOTAL_GROUNDWATER_EXTRACTIONS, data=alfalfa)
+plot(alfalfa$TOTAL_GROUNDWATER_EXTRACTIONS, alfalfa$Area..acres., main = "Total Groundwater Extractions vs. Relative Water Use", xlab = "Total Groundwater Extractions (ACFT)", ylab = "Crop Abundance")
+#abline(model_sjc, col = "red", lwd=2) #Regression plot would not run with this line included
+
+```
+
+```{r}
+#Annual crop abundance plots in San Joaquin county
+
+library(terra)
+
+cropland2023 <- rast("./Final_Data/clipped2023/clipped.TIF")
+
+cropland2022 <- rast("./Final_Data/clipped2022/clipped.TIF")
+
+cropland2021 <- rast("./Final_Data/clipped2021/clipped.TIF")
+
+#There is no downloadable spatial data for 2020 from CropLand
+
+cropland2019 <- rast("./Final_Data/clipped2019/clipped.TIF")
+
+sj_extent <- c(-13550000,-13450000,4500000,4625000) #Defines a bounding box around San Joaquin county
+sjv <- crop(counties_CA,sj_extent) #Crops the counties to only include counties within the San Joaquin region.
+
+# Add custom legend in top right and other aesthetics such as the new legend titles, and matching the colors they represent on the map
+plot(sjv, main="Crop Abundance (2019)")
+plot(cropland2019,col=c("green","red","tan"),add=TRUE, legend=FALSE) # Plot raster WITHOUT the default legend
+legend(x=-13480000, y=4535000, legend=c("Alfalfa", "Tomatoes","Almonds"),
+      fill=c("green","red","tan"), cex=0.5, bty="o")
+
+plot(sjv, main="Crop Abundance (2021)")
+plot(cropland2021,col=c("green","red","tan"),add=TRUE, legend=FALSE)
+legend(x=-13480000, y=4535000, legend=c("Alfalfa", "Tomatoes","Almonds"),
+       fill=c("green","red","tan"), cex=0.5, bty="o")
+
+plot(sjv, main="Crop Abundance (2022)") # Plot for Crop Abundance (2022)
+plot(cropland2022, col=c("green","red","tan"), add=TRUE, legend=FALSE) 
+legend(x=-13480000, y=4535000, legend=c("Alfalfa", "Tomatoes", "Almonds"),
+       fill=c("green", "red", "tan"), cex=0.5, bty="o") 
+
+plot(sjv, main="Crop Abundance (2023)")
+plot(cropland2023,col=c("green","red","tan"),add=TRUE, legend=FALSE)
+legend(x=-13480000, y=4535000, legend=c("Alfalfa", "Tomatoes","Almonds"),
+    fill =c("green","red","tan"), cex=0.5, bty="o")
+
+```
+
+
+Conclusions: 
+
+Based on the 4 plots we have created, we want to note a key observation we have made. The high water consumption of almonds is apparent, and their increasing abundance correlates with increased groundwater extraction. This staggering observation calls for a reanalysis of almond farming with growing water concerns. Given the push for sustainability efforts within agriculture, efforts should be focused on this growing concern, knowing that California produces 80% of the world’s almonds. 
+
+To answer our main question, “Did areas where groundwater (GW) is critically overdrafted see a move towards less water-intensive crops?”, given our data analysis, a simple answer would be no. If given more time and the opportunity to collect data, we would like to improve our approach for this project in 2 ways. (1) We would like to analyze the crop data for longer, our time scale of interest, of 5 years, we feel is too short. To get a trend, we would like to analyze this data for at least 10 years to get a sense of water consumption and relative water use fluctuations. (2) We would like to collect data that is more specific on the water usage for each crop of interest rather than using estimates we found in research publications. We feel that getting this collected data would give us a more accurate estimate of the water consumption. This would also allow us to have more accurate plots and data analyses. 
+
+With these improvements, we believe we would be able to better advise future water policy and conservation efforts so that they can be more directed and have the greatest impact. But, what we have done in this project still allows us to paint a picture of what overall water usage looks like and allows us to make the conclusions we have regarding crop water usage in critically overdrafted basins. 
+
