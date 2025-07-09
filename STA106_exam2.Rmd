@@ -1,0 +1,271 @@
+---
+title: "STA 106 Exam 2 - Dr. JoAnna Whitener"
+author: "Emily Dumont"
+date: "2025-06-01"
+output:
+  pdf_document: default
+  html_document: default
+class: STA 106
+instructor: Dr. JoAnna Whitener
+---
+
+#Introduction
+
+In this report, I attempt to determine whether or not there is an interaction effect between the two factors of the dataset of interest by using performing a two factor ANOVA hypothesis test and evaluating multiple confidence intervals. The dataset includes information on a random sample of a population undergoing treatment for psychological problems. Column two, representing Factor A, refers to each subject's history of drug usage and includes three levels: 'Recent' use of recreational drugs, 'Never' has used recreational drugs, and 'Previous', but not recent use of recreational drugs. The third column represents Factor B and includes information on the length of time each subject has received treatment. 'Long' values refer to a treatment period of a year or more while 'Short' values refer to a treatment period less than a year. The first column includes numeric, response data of the BECK depression score (0-75) for each subject. Larger values indicate a higher risk of the subject having and or developing depression. 
+
+#Summary of the Data
+
+Firstly, I wanted to gain an understanding of the general trends within the dataset. I found the summary values for the Beck depression score of each factor group, including group means, sample standard deviations, and sample sizes. Focusing on factors A and B independently, 'Recent' and 'Short' groups appeared to have the highest depression score out of all factor levels. The means were 23.67 and 21.87, respectively. These two groups did also have the highest standard deviation out of their factor levels, being 10.01 and 9.99, respectively. The sample sizes for each group are inconsistent with an unequal number of subjects per group, indicating that it may be necessary to incorporate weighted data into the analysis of the dataset. 
+
+These values indicate that the different factor levels do result in various Beck depression scores, but I wanted to further investigate whether or not there was an interaction effect present in the data. To first test for interactions, I produced an interaction plot between the two factors which did imply that there is an interaction effect present in this data because the plot lines are not parallel. After combining the two factors, I noticed that the 'Recent' and 'Short' group had the highest mean Beck depression score of 24.17 compared to the other five groups. This group also had the highest standard deviation of 10.47 as well as the highest sample size of 70 individuals. 
+
+In order to visualize the data for each factor, I created corresponding histograms and boxplots. According to each histogram of Beck Depression Score by Drug Use and Beck Depression Score by Length of Treatment, the spread of each factor is very similar with subtle differences in abundance. The boxplots are more informative. In the boxplot of Beck Depression Score by Drug Use the 'Recent' level displays the highest mean, the 'Previous' level has the smallest spread, and the 'Never' and 'Recent' level each have one outlier. In the boxplot of Beck Depression Score by Length of Treatment, the 'Short' level displays the higher mean and the larger spread with one outlier compared to the 'Long' level that has no outliers. 
+
+#Diagnostics
+
+Assuming that the two factor ANOVA includes interactions based off of the previously produced interaction plot, the assumptions then include that all subjects are randomly selected and therefore independent, factor A levels are independent, factor B levels are independent, and that the error term of the model is normally distributed with a mean of zero and an standard deviation of the variance of errors. According to the Residuals vs Fitted Values plot the residuals appear to be relatively evenly distributed across the mean Beck depression scores, indicating that there is constant variance. The Q-Q residuals plot displays the points distributed along a straight line, showing that the distribution of data is normal.  
+
+#Analysis and Interpretation
+
+According to the summary statistics of the two factor ANOVA interaction model, the best model was the reduced model including only factor A effects. I am able to come to this conclusion because the p-value is the smallest compared to the other two models (only factor B and the interaction effects model) and is smaller than the alpha value of 0.05. The p-value for the factor A effect is 0.000553 and the F-value test statistic if 7.798. This significantly small p-value allows the rejection of the null hypothesis that all factor A effects are equal to zero. Instead, the alternative hypothesis that all factor A effects are not equal to zero is accepted.
+
+The first pairwise interval I created was of the difference in true average Beck score between 'Recent' level and 'Never' level of factor A. The resulting CI was (1.5375 < mu_hat1. - mu_hat2. < 8.5366), meaning that we are overall 95% confident that the true average depression score for recent drug users is higher than the true average depression score for those who have never used drugs by 1.5375 to 8.5366 points. These values indicate a significant difference in group means considering the value zero is not included within the upper and lower bounds of this CI. 
+
+The second pairwise interval I created was of the difference in true average Beck score between 'Recent' level and 'Previous' level of factor A. The resulting CI was (-0.6654 < mu_hat1. - mu_hat3. < 8.6035), meaning that we are overall 95% confident that the true average depression score for recent drug users is different from the true average depression score for previous drug users by less than 0.6654 and more than 8.6035 points. These values indicate an insignificant difference in group means considering the value zero is included within the upper and lower bounds of this CI. 
+
+The third pairwise interval I created was of the difference in true average Beck score between 'Never' level and 'Previous' level of factor A. The resulting CI was (-5.2926 < mu_hat2. - mu_hat3. < 3.1566), meaning that we are overall 95% confident that the true average depression score for previous drug users is different from the true average depression score for those who have never used drugs by less than 5.2926 and more than 3.1566 points. These values indicate an insignificant difference in group means considering the value zero is included within the upper and lower bounds of this CI. 
+
+The final pairwise interval I created was of the difference in true average Beck score between 'Long' level and 'Short' level of factor B. The resulting CI was (-7.3936 < mu_hat.1 - mu_hat.2 < -0.6229), meaning that we are overall 95% confident that the true average depression score for subjects who received treatment for a year or more is less than the true average depression score for subjects who received treatment for less than a year by 0.6229 to 7.3936 points. These values indicate a significant difference in group means considering the value zero is not included within the upper and lower bounds of this CI. 
+
+The first contrast CI I created was for the group means of 'Recent' drug use and 'Long' duration of treatment. The result CI was (15.8250 < mu_hat_11 < 26.1750), meaning that we are overall 95% confident that the true average depression score an individual in the 'Recent' drug use and 'Long' duration of treatment group is between 15.8250 and 26.1750 points. 
+
+The second and final contrast CI I created was for the group means of 'Recent' drug use and 'Short' duration of treatment. The result CI was (21.9413 < mu_hat_12 < 26.4016), meaning that we are overall 95% confident that the true average depression score an individual in the 'Recent' drug use and 'Short' duration of treatment group is between 21.9413 and 26.4016 points.
+
+#Conclusion
+
+Through the exploration of a dataset on a sample of a population undergoing treatment for psychological problems using a two factor ANOVA interaction test, I was able to conclude that factor A has the most drastic effect on an individual's resulting Beck depression score, though there is an interaction effect within this dataset. The CIs between 'Recent' and 'Never' of factor A and between 'Long' and 'Short' of factor B also support my conclusion that a subject who recently used recreational drugs and received treatment for less than a year will have a larger Beck depression score than an individual from any of the other groups. 
+
+
+## Code Appendix
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+#Question 2: Consider 6 CIs (4 pairwise non-contrasts and 2 non-pairwise contrasts)
+
+library(dplyr)
+library(tidyr)
+
+#Dataset:
+scores <- read.csv("~/Documents/STA106/exam2/Scores.csv")
+
+scores$Drug <- as.factor(scores$Drug)
+scores$Treatment <- as.factor(scores$Treatment)
+
+#Summary of the Data:
+#Means Function from Lecture
+find.means <- function(the.data,fun.name = mean){
+  a = length(unique(the.data[,2]))
+  b = length(unique(the.data[,3]))
+  means.A = by(the.data[,1], the.data[,2], fun.name)
+  means.B = by(the.data[,1],the.data[,3],fun.name)
+  means.AB = by(the.data[,1],list(the.data[,2],the.data[,3]),fun.name)
+  MAB = matrix(means.AB,nrow = b, ncol = a, byrow = TRUE)
+  colnames(MAB) = names(means.A)
+  rownames(MAB) = names(means.B)
+  MA = as.numeric(means.A)
+  names(MA) = names(means.A)
+  MB = as.numeric(means.B)
+  names(MB) = names(means.B)
+  MAB = t(MAB) # Factor A (rows) and Factor B (columns)
+  results = list(A = MA, B = MB, AB = MAB)
+  return(results)
+}
+
+means <- find.means(scores)
+means #Group means with interactions
+
+#Standard deviations for each factor/column
+sd_drug <- aggregate(Beck ~ Drug, data = scores, sd)
+sd_drug 
+
+sd_trt <- aggregate(Beck ~ Treatment, data = scores, sd)
+sd_trt
+
+sd_AB <- aggregate(Beck ~ Treatment*Drug, data = scores, sd)  
+
+#Sample size for each group
+n_drug <- aggregate(Beck ~ Drug, data = scores, length)
+n_drug
+
+n_trt <- aggregate(Beck ~ Treatment, data = scores, length)
+n_trt
+
+n_AB <- aggregate(Beck ~ Drug*Treatment, data = scores, length)
+
+#Histogram of BECK Depression Score by Drug Use History
+library(ggplot2)
+ggplot(scores, aes(x=Beck, fill=Drug))+geom_histogram()+ggtitle("BECK Depression Score by Drug Use History")+xlab("BECK Depression Score")+ylab("Abundance")
+
+#Histogram of BECK Depression Score by Length of Treatment
+ggplot(scores, aes(x=Beck, fill=Treatment))+geom_histogram()+ggtitle("BECK Depression Score by Length of Treatment")+xlab("BECK Depression Score")+ylab("Abundance")
+
+#Boxplot of BECK Depression Score by Drug Use History
+boxplot(Beck ~ Drug, data = scores, main="BECK Depression Score by Drug Use History",ylab="BECK Depression Score", xlab="Drug Use History")
+
+#Boxplot of BECK Depression Score by Length of Treatment
+boxplot(Beck ~ Treatment, data = scores, main="BECK Depression Score by Length of Treatment",ylab="BECK Depression Score", xlab="Length of Treatment")
+
+interaction.plot(scores$Drug,scores$Treatment,scores$Beck) #Contrasts should include mu11(recent,long) and mu12(recent,short)
+
+
+#Diagnostics:
+model <- aov(Beck ~ Drug * Treatment, data = scores)
+#summary(model)
+plot(model) #Output includes plots of Residuals vs. Fitted Values, Normal Q-Q Plot, Scale-Location Plot, and Residuals vs. Leverage Plot
+
+
+#Analysis: 
+summary(model)
+
+unique(scores$Drug) #Factor A
+unique(scores$Treatment) #Factor B
+
+a <- 3
+b <- 2
+
+alpha <- 0.05
+
+MSE <- summary(model)[[1]][["Mean Sq"]][4]
+SSE <- summary(model)[[1]][["Sum Sq"]][4]
+df <- summary(model)[[1]][["Df"]][4]
+
+#Multiplier function from lecture
+find.mult <- function(alpha,a,b,dfSSE,g,group){
+  if(group == "A"){
+    Tuk = round(qtukey(1-alpha,a,dfSSE)/sqrt(2),3)
+    Bon = round(qt(1-alpha/(2*g), dfSSE ) ,3)
+    Sch = round(sqrt((a-1)*qf(1-alpha, a-1, dfSSE)),3) 
+  }else if(group == "B"){
+    Tuk = round(qtukey(1-alpha,b,dfSSE)/sqrt(2),3)
+    Bon = round(qt(1-alpha/(2*g), dfSSE ) ,3)
+    Sch = round(sqrt((b-1)*qf(1-alpha, b-1, dfSSE)),3) 
+  }else if(group == "AB"){
+    Tuk = round(qtukey(1-alpha,a*b,dfSSE)/sqrt(2),3)
+    Bon = round(qt(1-alpha/(2*g), dfSSE ) ,3)
+    Sch = round(sqrt((a*b-1)*qf(1-alpha, a*b-1, dfSSE)),3) 
+  }
+  results = c(Bon, Tuk,Sch)
+  names(results) = c("Bonferroni","Tukey","Scheffe")
+  return(results)
+}
+
+a_mult <- find.mult(alpha = alpha, a = a, b = b, dfSSE = df, g = 1, group = "A")
+a_mult
+bonf <- as.numeric(a_mult[1])
+bonf #Smallest multiplier value is Bonferroni
+
+b_mult <- find.mult(alpha = alpha, a = a, b = b, dfSSE = df, g = 1, group = "B")
+b_mult #Values are the same for all multipliers
+tuk <- as.numeric(b_mult[2])
+
+ab_mult <- find.mult(alpha = alpha, a = a, b = b, dfSSE = df, g = 1, group = "AB")
+ab_mult #Bonferroni is also the smallest multiplier for AB
+
+#Factor A
+recent_data <- scores[scores$Drug == "Recent", ]
+never_data <- scores[scores$Drug == "Never", ]
+prev_data <- scores[scores$Drug == "Previous", ]
+
+#Constructing the CIs
+#Calculate bar{Y}_{11}, bar{Y}_{12}, n_{11}, n_{12} (FIX)
+recent_agg <- recent_data %>%
+  group_by(Treatment) %>%
+  summarise(mean_Beck = mean(Beck), n = n())
+
+#Calculate bar{Y}_{21}, bar{Y}_{22}, n_{21}, n_{22}
+never_agg <- never_data %>%
+  group_by(Treatment) %>%
+  summarise(mean_Beck = mean(Beck), n = n())
+
+#Calculate bar{Y}_{31}, bar{Y}_{32}, n_{31}, n_{32}
+prev_agg <- prev_data %>%
+  group_by(Treatment) %>%
+  summarise(mean_Beck = mean(Beck), n = n())
+
+#hat{mu}_{1.}, hat{mu}_{2.}, hat{mu}_{3.}
+mu_hat1. <- mean(recent_agg$mean_Beck)
+mu_hat2. <- mean(never_agg$mean_Beck)
+mu_hat3. <- mean(prev_agg$mean_Beck)
+
+#Compute variance of hat{mu}_{1.} - hat{mu}_{2.}
+A_var_mu12_hat <- (1 / b^2) * MSE * (sum(1 / recent_agg$n) + sum(1/never_agg$n))
+
+#Compute variance of hat{mu}_{1.} - hat{mu}_{3.}
+A_var_mu13_hat <- (1 / b^2) * MSE * (sum(1 / recent_agg$n) + sum(1/prev_agg$n))
+
+#Compute variance of hat{mu}_{2.} - hat{mu}_{3.}
+A_var_mu23_hat <- (1 / b^2) * MSE * (sum(1 / never_agg$n) + sum(1/prev_agg$n))
+
+#Compute CI of hat{mu}_{1.} - hat{mu}_{2.} (Recent drug use vs. never used drugs)
+(mu_hat1. - mu_hat2.) - bonf*sqrt(A_var_mu12_hat)
+(mu_hat1. - mu_hat2.) + bonf*sqrt(A_var_mu12_hat)
+
+#Compute CI of hat{mu}_{1.} - hat{mu}_{3.} (Recent drug use vs. previously used drugs)
+(mu_hat1. - mu_hat3.) - bonf*sqrt(A_var_mu13_hat)
+(mu_hat1. - mu_hat3.) + bonf*sqrt(A_var_mu13_hat)
+
+#Compute CI of hat{mu}_{2.} - hat{mu}_{3.} (Never used drugs vs. previously used drugs)
+(mu_hat2. - mu_hat3.) - bonf*sqrt(A_var_mu23_hat)
+(mu_hat2. - mu_hat3.) + bonf*sqrt(A_var_mu23_hat)
+
+#Factor B
+long_data <- scores[scores$Treatment == "Long", ]
+short_data <- scores[scores$Treatment == "Short", ]
+
+#Calculate bar{Y}_{11}, bar{Y}_{21}, n_{11}, n_{21} 
+long_agg <- long_data %>%
+  group_by(Drug) %>%
+  summarise(mean_Beck = mean(Beck), n = n())
+
+#Calculate bar{Y}_{12}, bar{Y}_{22}, n_{12}, n_{22}
+short_agg <- short_data %>%
+  group_by(Drug) %>%
+  summarise(mean_Beck = mean(Beck), n = n())
+
+#hat{mu}_{1.}, hat{mu}_{2.}, hat{mu}_{3.}
+mu_hat.1 <- mean(long_agg$mean_Beck)
+mu_hat.2 <- mean(short_agg$mean_Beck)
+
+#Compute variance of hat{mu}_{.1} - hat{mu}_{.2}
+B_var_mu12_hat <- (1 / a^2) * MSE * (sum(1 / long_agg$n) + sum(1/short_agg$n))
+
+#Compute CI of hat{mu}_{.1} - hat{mu}_{.2} (Long duration of treatment vs. short duration of treatment)
+(mu_hat.1 - mu_hat.2) - tuk*sqrt(B_var_mu12_hat)
+(mu_hat.1 - mu_hat.2) + tuk*sqrt(B_var_mu12_hat)
+
+#Contrast CIs
+c_11 <- 1
+c_12 <- 1
+data_11 <- scores[scores$Drug == "Recent" & scores$Treatment == "Long", ]
+data_12 <- scores[scores$Drug == "Recent" & scores$Treatment == "Short", ]
+
+#bar{Y}_{11} and bar{Y}_{12}
+mu_hat_11 <- mean(data_11$Beck)
+mu_hat_12 <- mean(data_12$Beck)
+
+#n_{11} and n_{21}
+n_11 <- nrow(data_11)
+n_12 <- nrow(data_12)
+
+#Variance of mu_hat_11 and mu_hat_12 
+var_hat_1 <- MSE* (c_11^2/n_11)
+var_hat_2 <- MSE* (c_12^2/n_12)
+
+#CI for recent drug use and long duration of treatment
+c_11*mu_hat_11 - bonf* sqrt(var_hat_1)
+c_11*mu_hat_11 + bonf* sqrt(var_hat_1)
+
+#CI for recent drug use and short duration of treatment 
+c_12*mu_hat_12 - bonf* sqrt(var_hat_2)
+c_12*mu_hat_12 + bonf* sqrt(var_hat_2)
+
+```
+
