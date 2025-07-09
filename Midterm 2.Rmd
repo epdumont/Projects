@@ -1,0 +1,146 @@
+---
+title: "Midterm 2"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+### Data 
+
+For this midterm you need to use two datasets:
+
+"chinalanduse_MODIS_2012.nc" contains four layers with land cover data for China. The data were derived from MODIS satellite data for the year 2012. Each layer gives the fraction of the grid cell that has a specific land cover type: urban (layer 1), cropland (layer 2), grassland (layer 3) and forest (layer 4). 
+
+"ch_adm.*" with polygons for the provinces of China.
+
+
+Q1. Read in the land use data as a SpatRaster get the polygons as a SpatVector (2 points)
+
+
+```{r}
+library(terra)
+china_lu <- rast("~/Documents/ESP106/Midterm2/mid2/chinalanduse_MODIS_2012.nc") #read file in as a SpatRaster
+china_poly <- vect("~/Documents/ESP106/Midterm2/mid2/chn_adm.shp") #read file in as a SpatVector
+
+```
+
+You can ignore this Warning:
+
+```{r}
+#Warning message:
+#X axis unit (degrees_east) is different from Y axis unit (degrees_north). SRS will ignore axis unit and be likely wrong. (GDAL error 1) 
+
+#did not end up receiving this message
+
+```
+
+
+Q2a. Crop the land use SpatRaster to the same extent as the SpatVector of Chinese provinces (1 point), and set all grid cells outside of China to `NA`
+
+```{r}
+ext <- ext(china_poly) #check the extent of the China SpatVector
+china_crop <- crop(china_lu,ext) #crop the China SpatRaster to the same extent as the China SpatVector
+china_mask <- mask(china_crop,china_poly) #set all grid cells outside of China to NA by creating a new SpatRaster
+
+```
+
+Q2b. Rename the layers in the SpatRaster so they provide information about what data is in each of the 4 layers (2 points)
+
+```{r}
+names(china_mask) <- c("Urban","Cropland","Grassland","Forest") #reassign the names of each layer in the SpatRaster
+cover_names <- names(china_mask) #create a variable containing a vector of the layer names
+
+```
+
+Q3. Make a figure showing each SpatRaster layer on one of the panels and overlay the polygons of the Chinese provinces. Title each panel with the type of land use it shows. (4 points)
+
+```{r}
+layers <- nlyr(china_mask) #create a variable with the number of layers of the SpatRaster
+
+par(mfrow=c(2,2)) #prints the maps in a 2x2 orientation
+
+for (i in 1:layers) {
+  plot(china_mask[[i]], col=rev(terrain.colors(10)),fill=FALSE,main=paste(cover_names[i]))
+  plot(china_poly, border="black", lwd=0.3, add=TRUE)
+} #make a map for each cover class using a for loop, plot the SpatVector second to overlay it on the SpatRaster
+
+```
+
+Q4a. Use `terra::extract` to find, for each province, the fraction of land in these four classes. [For this question you can assume all the grid cells have the same size] (3 points)
+
+```{r}
+prov_names <- china_poly$NAME_1 #create a variable containing a vector of the actual China province names
+extracted <- terra::extract(china_mask,china_poly,fun=mean,na.rm=TRUE) #use extract to find the fraction of land class cover within each province, function argument must be set to "mean"
+extracted$ID <- prov_names #replace the ID number with the province names for data frame clarity
+
+```
+
+Q4b. Describe the potential problem with the area assumption made in 4a. How might it affect the calculation in that step? What could we do if we didn't want to make that assumption? (You don't have to do it, just describe in theory) (2 points)
+
+**Answer:**
+   One potential area assumption could include the incorrect classification of land cover between the four defined classes. The derived areas could be inaccurate due to miss-classification of classes within these areas, and the wrong values could be assigned. If we wanted to limit this error, we could potentially define more classes to more accurately identify land cover types. A more area-specific assumption is that the cell sizes between the SpatRaster and the SpatVector are not the same since cell sizes within a raster vary with changes in latitude. A solution for this problem could be using an equal projection area, such as UTM. 
+
+Q4c. Sum up the fractions in the four land cover classes for each province and plot these as a histogram. (2 points) 
+
+```{r}
+par(mfrow=c(2,2)) #simultaneously displays histograms in a 2x2 orientation
+
+#plot histograms for each cover class
+hist(extracted$Urban,main="Urban")
+hist(extracted$Cropland,main="Cropland")
+hist(extracted$Grassland,main="Grassland")
+hist(extracted$Forest,main="Forest")
+
+```
+
+Q5. Add a new variable called "other" to the data.frame created with terra::extract. This variable should represent the fraction of all other land cover classes. Assign it the appropriate values. (2 points)
+
+```{r}
+extracted$Other <- 1-(rowSums(extracted[2:5])) #using the dollar sign create a new column in the data frame, use an equation to derive each cell value 
+
+```
+
+
+Q6. Make barplots showing the breakdown of urban, cropland, grassland, forest, and other for each province. The barplots should be "stacked" (a single bar for each province, showing land cover with a color) and "horizontal" (province names on the vertical axis).  
+
+Q6a) Use graphics::barplot, make sure to include a legend.  (4 points)
+
+```{r}
+#combined land cover fraction in one barplot, visually easier to interpret
+comb_ext <- cbind(extracted$Urban,extracted$Cropland,extracted$Grassland,extracted$Forest,extracted$Other) # create a matrix containing all land cover columns in one
+colnames(comb_ext) <- c("Urban","Cropland","Grassland","Forest","Other") #define column names to be used, will later be applied to the legend
+rownames(comb_ext) <- extracted$ID #define row to be used
+comb_ext_colors <- c("red","orange","lightgreen","darkgreen","blue") #set vector of colors to be the same as the barplots below
+
+#plot the stacked barplots of each land cover class for each province, transpose the matrix to be horizontally stacked using horiz argument
+barplot(t(comb_ext),horiz=TRUE,col=comb_ext_colors,las=1,cex.names=0.45,xlab="Land Cover Fraction",ylab="China Province",main="Land Cover Fraction in China Provinces",legend.text=colnames(comb_ext),args.legend=list(x="topright",cex=0.45)) #add and position legend of land cover classes
+
+#the following barplots are not as visually appealing, but I originally interpreted the question's wording of "barplots" as asking for a barplot for each land cover class 
+par(mfrow=c(2,3)) #not sure if this display is optimal/desired for this question 
+
+#create a barplot for each cover class, cex.names argument makes the province names small enough for them all to be displayed on the y axis, horiz argument orients each barplot to be stacked
+barplot(extracted$Urban~extracted$ID,col="red",las=1,cex.names=0.3,ylab="China Province",xlab="Land Cover",main="Urban",horiz=TRUE)
+barplot(extracted$Cropland~extracted$ID,col="orange",las=1,cex.names=0.3,ylab="China Province",xlab="Land Cover",main="Cropland",horiz=TRUE)
+barplot(extracted$Grassland~extracted$ID,col="lightgreen",las=1,cex.names=0.3,ylab="China Province",xlab="Land Cover",main="Grassland",horiz=TRUE)
+barplot(extracted$Forest~extracted$ID,col="darkgreen",las=1,cex.names=0.3,ylab="China Province",xlab="Land Cover",main="Forest",horiz=TRUE)
+barplot(extracted$Other~extracted$ID,col="blue",las=1,cex.names=0.3,ylab="China Province",xlab="Land Cover",main="Other",horiz=TRUE)
+
+```
+
+Q6b) Use ggplot. (4 points) 
+
+```{r}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+
+extracted_fill <- extracted %>% pivot_longer(cols = c(Urban, Cropland, Grassland, Forest, Other), names_to = "Cover_Class", values_to = "value") #Used assistance from ChatGPT here to figure out how to fill by cover class if each cover class is its own column in my data frame.
+
+#plot all cover classes for each province within one bar using the fill argument with the variable created just above
+ggplot(extracted_fill, aes(x = ID, y = value, fill = Cover_Class)) +geom_bar(stat = "identity", position = "stack") +labs(x = "China Province", y = "Land Cover", title = "Land Cover by Province") +scale_fill_manual(values = c("Urban" = "red", "Cropland" = "orange", "Grassland" = "lightgreen", "Forest" = "darkgreen", "Other" = "blue")) +theme_minimal() +theme(axis.text.x = element_text(angle = 45, hjust = 1,vjust=1.25,size=7))
+
+```
+
+
+Q7. Upload your R markdown file, and your knitted output to Canvas. Push the R markdown file to your Github repository. (2 points)
+
